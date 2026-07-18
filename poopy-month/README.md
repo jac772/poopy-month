@@ -30,3 +30,5 @@ State is stored on the device (localStorage), one record per calendar day, plus 
 ## Deploy
 
 Publish this folder as its own private GitHub repo (GitHub Desktop, Publish repository), then import it on Vercel. Every push then deploys automatically. Commit as doubleedged101@gmail.com.
+
+Note: the app lives in the `poopy-month/` subfolder of this repo, so set the Vercel project Root Directory to `poopy-month`.
