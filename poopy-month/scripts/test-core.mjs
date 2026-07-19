@@ -47,11 +47,11 @@ const broken = { [C.keyAtIndex(0)]: 96, [C.keyAtIndex(1)]: 40 };
 ok(C.streakFrom(broken, 2, 90) === 1, "a sub-80 day breaks the streak");
 ok(C.streakFrom({}, -2, 0) === 0, "before the month starts, streak is 0");
 
-// --- training split: push Mon, pull Wed, legs Sat, cardio between, Sunday rests ---
-ok(C.trainingFor(new Date(2026, 6, 20)).key === "push", "Monday is push");
-ok(C.trainingFor(new Date(2026, 6, 21)).kind === "cardio", "Tuesday is cardio");
-ok(C.trainingFor(new Date(2026, 6, 22)).key === "pull", "Wednesday is pull");
-ok(C.trainingFor(new Date(2026, 6, 23)).kind === "cardio", "Thursday is cardio");
+// --- training split: alternates cardio/gym from Monday, legs Sat, Sunday rests ---
+ok(C.trainingFor(new Date(2026, 6, 20)).kind === "cardio", "Monday is cardio");
+ok(C.trainingFor(new Date(2026, 6, 21)).key === "push", "Tuesday is push");
+ok(C.trainingFor(new Date(2026, 6, 22)).kind === "cardio", "Wednesday is cardio");
+ok(C.trainingFor(new Date(2026, 6, 23)).key === "pull", "Thursday is pull");
 ok(C.trainingFor(new Date(2026, 6, 24)).kind === "cardio", "Friday is cardio");
 ok(C.trainingFor(new Date(2026, 6, 25)).key === "legs", "Saturday is legs");
 ok(C.trainingFor(new Date(2026, 6, 26)) === null, "Sunday has no training session");
