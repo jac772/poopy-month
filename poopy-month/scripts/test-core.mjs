@@ -47,6 +47,17 @@ const broken = { [C.keyAtIndex(0)]: 96, [C.keyAtIndex(1)]: 40 };
 ok(C.streakFrom(broken, 2, 90) === 1, "a sub-80 day breaks the streak");
 ok(C.streakFrom({}, -2, 0) === 0, "before the month starts, streak is 0");
 
+// --- training split: push Mon, pull Wed, legs Sat, cardio between, Sunday rests ---
+ok(C.trainingFor(new Date(2026, 6, 20)).key === "push", "Monday is push");
+ok(C.trainingFor(new Date(2026, 6, 21)).kind === "cardio", "Tuesday is cardio");
+ok(C.trainingFor(new Date(2026, 6, 22)).key === "pull", "Wednesday is pull");
+ok(C.trainingFor(new Date(2026, 6, 23)).kind === "cardio", "Thursday is cardio");
+ok(C.trainingFor(new Date(2026, 6, 24)).kind === "cardio", "Friday is cardio");
+ok(C.trainingFor(new Date(2026, 6, 25)).key === "legs", "Saturday is legs");
+ok(C.trainingFor(new Date(2026, 6, 26)) === null, "Sunday has no training session");
+ok(C.LIFTS.push.length > 0 && C.LIFTS.pull.length > 0 && C.LIFTS.legs.length > 0, "all three lift lists exist");
+ok(C.CARDIO_TYPES.length === 3 && C.CARDIO_MINS === 60, "cardio is 60 mins with three types");
+
 // --- non-negotiables ---
 ok(C.nnForPlan(C.PLAN_SUNDAY) === C.NN_SUNDAY, "sunday uses the sunday non-negotiables");
 ok(C.missedNames({ done: { wake: true } }, C.NN_WEEKDAY).length === C.NN_WEEKDAY.length - 1, "one hit, rest missed");

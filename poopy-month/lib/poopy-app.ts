@@ -4,7 +4,8 @@
 import * as C from './poopy-core.mjs';
 
 const {
-  I, TILE, PLAN_WEEKDAY, PLAN_SUNDAY, CHECKLISTS, EXTRA, SUPPS_AM, SUPPS_PM, GYM,
+  I, TILE, PLAN_WEEKDAY, PLAN_SUNDAY, CHECKLISTS, EXTRA, SUPPS_AM, SUPPS_PM, GYM_CODE,
+  LIFTS, CARDIO_TYPES, CARDIO_MINS, trainingFor,
   DIET_YES, DIET_NO, MOODS, MEET_AM, MEET_PM, WORK_TASKS, NN_WEEKDAY, NN_SUNDAY, DAYS,
   ymd, idxFromStart, dateAtIndex, keyAtIndex, dateLabelIndex, planForIndex, nnForPlan,
   scoreFor, doneCountFor, missedNames, colFor, monthVal, streakFrom
@@ -103,6 +104,7 @@ export function mountPoopy(root){
   const TODAY_KEY = ymd(TODAY);
   const started = TODAY_IDX >= 0 && TODAY_IDX < DAYS;
   let PLAN = (TODAY.getDay() === 0) ? PLAN_SUNDAY : PLAN_WEEKDAY;
+  const TRAIN = trainingFor(TODAY); // null on Sunday
 
   /* ---------- state (one record per calendar day) ---------- */
   const KEY = 'poopy:v1:' + TODAY_KEY;
@@ -186,11 +188,14 @@ export function mountPoopy(root){
       if(st==='current') suffix=' <span class="nowtag">now</span>';
       else if(p.expand && !missed) suffix=' &middot; <span class="tapopen">tap to open</span>';
       if(missed) suffix+=' &middot; <span class="missedtag">'+(p.expand?'missed &middot; open':'missed')+'</span>';
+      // the training block renames itself to the day's session (Push, Pull, Legs or Cardio)
+      const bName = (p.id==='gym' && TRAIN) ? TRAIN.label : p.name;
+      const bDesc = (p.id==='gym' && TRAIN) ? TRAIN.desc : p.desc;
       el.innerHTML=
         '<div class="row">'+
           '<div class="tile">'+svg(p.ic,'width="21" height="21"')+'</div>'+
           '<div class="meta"><div class="time">'+fmt(p.t,p.e)+suffix+'</div>'+
-            '<div class="name">'+p.name+'</div>'+(p.desc&&!p.routine?'<div class="desc">'+p.desc+'</div>':'')+'</div>'+
+            '<div class="name">'+bName+'</div>'+(bDesc&&!p.routine?'<div class="desc">'+bDesc+'</div>':'')+'</div>'+
           '<div class="rgt">'+right+'<button class="check" aria-label="Complete">'+svg('check','width="16" height="16"')+'</button></div>'+
         '</div>'+
         (p.expand?'<div class="panel"><div class="pin" id="pin-'+p.id+'"></div></div>':'');
@@ -212,7 +217,7 @@ export function mountPoopy(root){
   function scrollToNow(){
     if(scrolledOnce) return; scrolledOnce=true;
     const nl=root.querySelector('#view-today .nowline'); if(!nl) return;
-    const nm=nowMin(); if(nm<toMin('05:00')||nm>toMin('21:15')) return;
+    const nm=nowMin(); if(nm<toMin('05:30')||nm>toMin('21:45')) return;
     const y=nl.getBoundingClientRect().top+window.scrollY-170; if(y>60) window.scrollTo({top:y,behavior:'smooth'});
   }
 
@@ -230,13 +235,32 @@ export function mountPoopy(root){
       el.querySelectorAll('.mini').forEach(m=>m.addEventListener('click',()=>{ const k=m.dataset.k; S.supp[k]=!S.supp[k]; m.classList.toggle('on',S.supp[k]); sv(); }));
     }
     if(p.expand==='gym'){
-      el.innerHTML='<h4>Push A &middot; log your lifts</h4>'+GYM.map((x,i)=>{
-        const wt=S.gymWt[i]||'', sets=parseInt(x.s)||3; let sh='';
-        for(let j=0;j<sets;j++){ const sk=i+'-'+j,on=S.gymSets[sk]; sh+='<button class="setbtn'+(on?' done':'')+'" data-sk="'+sk+'">'+(on?'&#10003;':(j+1))+'</button>'; }
-        return '<div class="ex"><div class="ex-h"><b>'+x.n+'</b><span class="sc">'+x.s+'</span></div><div class="ex-c"><div class="wt"><label>kg</label><input type="number" inputmode="decimal" data-wt="'+i+'" value="'+wt+'" placeholder="--"></div><div class="sets">'+sh+'</div></div></div>';
-      }).join('')+'<button class="bigbtn'+(S.gymDone?' done':'')+'" id="gymCta">'+(S.gymDone?'Workout logged':'Complete workout')+'</button>';
-      el.querySelectorAll('[data-wt]').forEach(inp=>inp.addEventListener('input',()=>{ S.gymWt[inp.dataset.wt]=inp.value; sv(); }));
-      el.querySelectorAll('[data-sk]').forEach(b=>b.addEventListener('click',()=>{ const sk=b.dataset.sk; S.gymSets[sk]=!S.gymSets[sk]; b.classList.toggle('done',S.gymSets[sk]); b.innerHTML=S.gymSets[sk]?'&#10003;':(parseInt(sk.split('-')[1])+1); sv(); }));
+      const code='<div class="gymcode"><span class="gc-lab">Entry code</span><span class="gc-num">'+GYM_CODE+'</span></div>';
+      if(TRAIN && TRAIN.kind==='cardio'){
+        // cardio day: pick the type, log the distance
+        el.innerHTML=code+'<h4>'+CARDIO_MINS+' minutes cardio</h4>'+
+          '<div class="ctypes">'+CARDIO_TYPES.map(t=>'<button class="ctype'+(S.cardioType===t?' on':'')+'" data-ct="'+t+'">'+t+'</button>').join('')+'</div>'+
+          '<div class="ex"><div class="ex-h"><b>Distance covered</b><span class="sc">'+CARDIO_MINS+' min</span></div>'+
+            '<div class="ex-c"><div class="wt"><label>km</label><input type="number" inputmode="decimal" data-km value="'+(S.cardioKm||'')+'" placeholder="--"></div></div></div>'+
+          '<button class="bigbtn'+(S.gymDone?' done':'')+'" id="gymCta">'+(S.gymDone?'Cardio logged':'Complete cardio')+'</button>';
+        el.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{
+          S.cardioType=b.dataset.ct; sv();
+          el.querySelectorAll('[data-ct]').forEach(x=>x.classList.toggle('on',x.dataset.ct===S.cardioType));
+        }));
+        const km=el.querySelector('[data-km]');
+        if(km) km.addEventListener('input',()=>{ S.cardioKm=km.value; sv(); });
+      } else {
+        // gym day: the day's lifts
+        const lifts=(TRAIN && LIFTS[TRAIN.key]) || LIFTS.push;
+        const title=(TRAIN ? TRAIN.label.replace('Gym: ','') : 'Push');
+        el.innerHTML=code+'<h4>'+title+' &middot; log your lifts</h4>'+lifts.map((x,i)=>{
+          const wt=S.gymWt[i]||'', sets=parseInt(x.s)||3; let sh='';
+          for(let j=0;j<sets;j++){ const sk=i+'-'+j,on=S.gymSets[sk]; sh+='<button class="setbtn'+(on?' done':'')+'" data-sk="'+sk+'">'+(on?'&#10003;':(j+1))+'</button>'; }
+          return '<div class="ex"><div class="ex-h"><b>'+x.n+'</b><span class="sc">'+x.s+'</span></div><div class="ex-c"><div class="wt"><label>kg</label><input type="number" inputmode="decimal" data-wt="'+i+'" value="'+wt+'" placeholder="--"></div><div class="sets">'+sh+'</div></div></div>';
+        }).join('')+'<button class="bigbtn'+(S.gymDone?' done':'')+'" id="gymCta">'+(S.gymDone?'Workout logged':'Complete workout')+'</button>';
+        el.querySelectorAll('[data-wt]').forEach(inp=>inp.addEventListener('input',()=>{ S.gymWt[inp.dataset.wt]=inp.value; sv(); }));
+        el.querySelectorAll('[data-sk]').forEach(b=>b.addEventListener('click',()=>{ const sk=b.dataset.sk; S.gymSets[sk]=!S.gymSets[sk]; b.classList.toggle('done',S.gymSets[sk]); b.innerHTML=S.gymSets[sk]?'&#10003;':(parseInt(sk.split('-')[1])+1); sv(); }));
+      }
       el.querySelector('#gymCta').addEventListener('click',()=>{ S.gymDone=!S.gymDone; S.done.gym=S.gymDone; sv(); renderTimeline(); refresh(); });
     }
     if(p.expand==='diet'){

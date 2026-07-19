@@ -30,44 +30,44 @@ export const TILE = {anchor:'var(--purple-soft)',move:'var(--lime)',deep:'var(--
 
 /* ---------- day plans ---------- */
 export const PLAN_WEEKDAY = [
- {id:'wake',t:'05:00',e:'05:15',ic:'wake',cat:'anchor',name:'Wake and hydrate',desc:'500ml water. No phone. Curtains open.',pts:8},
- {id:'walk',t:'05:15',e:'05:30',ic:'walk',cat:'move',name:'Walk and sunlight',desc:'Short walk, daylight in the eyes. Fruit or a smoothie.',pts:5},
- {id:'cre1',t:'05:30',e:'07:30',ic:'pen',cat:'deep',name:'Creative block 1',desc:'Two hours on the OS build. Deepest work, freshest head.',pts:10},
- {id:'bkfst',t:'07:30',e:'08:15',ic:'food',cat:'brk',name:'Breakfast and shower',desc:'',pts:0,routine:true},
- {id:'suppAM',t:'08:15',e:'08:30',ic:'pill',cat:'fuel',name:'Supplements (AM)',desc:'Vitamin D, vitamin C, creatine.',pts:3,expand:'supps'},
- {id:'sashAM',t:'08:30',e:'12:30',ic:'work',cat:'deep',name:'Sashed work',desc:'One block. Meetings drop in from your Sash calendar, fill the gaps with quoting and calls.',pts:5,expand:'work'},
- {id:'caff',t:'11:00',e:'11:00',ic:'coffeeoff',cat:'fuel',name:'No caffeine after 11:00',desc:'Last coffee is behind you.',pts:4,pin:true},
- {id:'midday',t:'12:30',e:'13:15',ic:'pause',cat:'brk',name:'Midday break',desc:'Walk or a short sleep. Off your feet, off the screen.',pts:3},
- {id:'sashPM',t:'13:15',e:'16:00',ic:'work',cat:'deep',name:'Sashed work',desc:'Second work block through to gym.',pts:5,expand:'work'},
- {id:'gym',t:'16:00',e:'17:15',ic:'gym',cat:'move',name:'Gym: Push A',desc:'Chest, shoulders, triceps. Tap to open your lifts.',pts:12,expand:'gym'},
- {id:'shower',t:'17:15',e:'17:30',ic:'droplet',cat:'brk',name:'Shower',desc:'',pts:0,routine:true},
- {id:'dinner',t:'17:30',e:'18:15',ic:'food',cat:'fuel',name:'Dinner and diet check',desc:'Carnivore adaptation. Confirm you stayed on plan.',pts:8,expand:'diet'},
- {id:'cre2',t:'18:15',e:'20:00',ic:'pen',cat:'deep',name:'Creative block 2',desc:'Second two hours on the OS build.',pts:10},
- {id:'read',t:'20:00',e:'20:45',ic:'book',cat:'brk',name:'Reading and writing',desc:'Buffer for planning, reading, journaling.',pts:4},
- {id:'phone',t:'20:00',e:'20:00',ic:'phoneoff',cat:'anchor',name:'Phone off',desc:'Down for the night by 8pm.',pts:5,pin:true},
- {id:'suppPM',t:'20:45',e:'21:00',ic:'pill',cat:'fuel',name:'Wind down and magnesium',desc:'Magnesium glycinate. Lights low.',pts:3,expand:'suppsPM'},
- {id:'sleep',t:'21:00',e:'21:00',ic:'moon',cat:'anchor',name:'Sleep',desc:'Asleep by 9pm. That is the whole game.',pts:8,pin:true}
+ {id:'wake',t:'05:30',e:'05:45',ic:'wake',cat:'anchor',name:'Wake and hydrate',desc:'500ml water. No phone. Curtains open.',pts:8},
+ {id:'walk',t:'05:45',e:'06:00',ic:'walk',cat:'move',name:'Walk and sunlight',desc:'Short walk, daylight in the eyes. Fruit or a smoothie.',pts:5},
+ {id:'cre1',t:'06:00',e:'08:00',ic:'pen',cat:'deep',name:'Creative block 1',desc:'Two hours on the OS build. Deepest work, freshest head.',pts:10},
+ {id:'bkfst',t:'08:00',e:'08:45',ic:'food',cat:'brk',name:'Breakfast and shower',desc:'',pts:0,routine:true},
+ {id:'suppAM',t:'08:45',e:'09:00',ic:'pill',cat:'fuel',name:'Supplements (AM)',desc:'Vitamin D, vitamin C, creatine.',pts:3,expand:'supps'},
+ {id:'sashAM',t:'09:00',e:'13:00',ic:'work',cat:'deep',name:'Sashed work',desc:'One block. Meetings drop in from your Sash calendar, fill the gaps with quoting and calls.',pts:5,expand:'work'},
+ {id:'caff',t:'11:30',e:'11:30',ic:'coffeeoff',cat:'fuel',name:'No caffeine after 11:30',desc:'Last coffee is behind you.',pts:4,pin:true},
+ {id:'midday',t:'13:00',e:'13:45',ic:'pause',cat:'brk',name:'Midday break',desc:'Walk or a short sleep. Off your feet, off the screen.',pts:3},
+ {id:'sashPM',t:'13:45',e:'16:30',ic:'work',cat:'deep',name:'Sashed work',desc:'Second work block through to gym.',pts:5,expand:'work'},
+ {id:'gym',t:'16:30',e:'17:45',ic:'gym',cat:'move',name:'Training',desc:'Today of session. Tap to open.',pts:12,expand:'gym'},
+ {id:'shower',t:'17:45',e:'18:00',ic:'droplet',cat:'brk',name:'Shower',desc:'',pts:0,routine:true},
+ {id:'dinner',t:'18:00',e:'18:45',ic:'food',cat:'fuel',name:'Dinner and diet check',desc:'Carnivore adaptation. Confirm you stayed on plan.',pts:8,expand:'diet'},
+ {id:'cre2',t:'18:45',e:'20:30',ic:'pen',cat:'deep',name:'Creative block 2',desc:'Second two hours on the OS build.',pts:10},
+ {id:'read',t:'20:30',e:'21:15',ic:'book',cat:'brk',name:'Reading and writing',desc:'Buffer for planning, reading, journaling.',pts:4},
+ {id:'phone',t:'20:30',e:'20:30',ic:'phoneoff',cat:'anchor',name:'Phone off',desc:'Down for the night by 8:30pm.',pts:5,pin:true},
+ {id:'suppPM',t:'21:15',e:'21:30',ic:'pill',cat:'fuel',name:'Wind down and magnesium',desc:'Magnesium glycinate. Lights low.',pts:3,expand:'suppsPM'},
+ {id:'sleep',t:'21:30',e:'21:30',ic:'moon',cat:'anchor',name:'Sleep',desc:'Asleep by 9:30pm. That is the whole game.',pts:8,pin:true}
 ];
 export const PLAN_SUNDAY = [
- {id:'su_wake',t:'05:00',e:'05:15',ic:'wake',cat:'anchor',name:'Wake and hydrate',desc:'500ml water. No phone. Curtains open.',pts:8},
- {id:'su_walk',t:'05:15',e:'05:30',ic:'walk',cat:'move',name:'Walk and sunlight',desc:'Short walk, daylight in the eyes.',pts:5},
- {id:'su_reflect',t:'05:30',e:'07:00',ic:'book',cat:'deep',name:'Reflect and read',desc:'Slower start. Journal and read, no screens.',pts:9},
- {id:'su_bkfst',t:'07:00',e:'07:45',ic:'food',cat:'brk',name:'Breakfast and shower',desc:'',pts:0,routine:true},
- {id:'su_suppAM',t:'07:45',e:'08:00',ic:'pill',cat:'fuel',name:'Supplements (AM)',desc:'Vitamin D, vitamin C, creatine.',pts:3,expand:'supps'},
- {id:'su_mealprep',t:'08:00',e:'10:30',ic:'food',cat:'fuel',name:'Meal prep for the week',desc:'Cook and portion the week of meals.',pts:12,expand:'mealprep'},
- {id:'su_portion',t:'10:30',e:'11:00',ic:'pill',cat:'fuel',name:'Portion supplements and meat check',desc:'Bag the week of stacks. Confirm the meat delivery.',pts:5,expand:'portion'},
- {id:'su_caff',t:'11:00',e:'11:00',ic:'coffeeoff',cat:'fuel',name:'No caffeine after 11:00',desc:'Last coffee is behind you.',pts:4,pin:true},
- {id:'su_move',t:'11:00',e:'12:00',ic:'walk',cat:'move',name:'Long walk or mobility',desc:'Easy movement only. No hard session on rest day.',pts:7},
- {id:'su_lunch',t:'12:00',e:'12:45',ic:'food',cat:'brk',name:'Lunch',desc:'',pts:0,routine:true},
- {id:'su_rest',t:'12:45',e:'13:30',ic:'pause',cat:'brk',name:'Rest',desc:'Off your feet. A nap or quiet time.',pts:3},
- {id:'su_plan',t:'13:30',e:'15:30',ic:'pen',cat:'deep',name:'Week review and plan',desc:'Review last week. Plan next week and set your focus.',pts:10,expand:'planning'},
- {id:'su_family',t:'15:30',e:'17:00',ic:'moon',cat:'brk',name:'Family and rest',desc:'',pts:0,routine:true},
- {id:'su_read',t:'17:00',e:'17:30',ic:'book',cat:'brk',name:'Reading and journal',desc:'Slow wind toward the evening.',pts:3},
- {id:'su_dinner',t:'17:30',e:'18:15',ic:'food',cat:'fuel',name:'Dinner and diet check',desc:'Carnivore adaptation. Confirm you stayed on plan.',pts:8,expand:'diet'},
- {id:'su_wind',t:'18:15',e:'20:00',ic:'moon',cat:'brk',name:'Wind down and rest',desc:'',pts:0,routine:true},
- {id:'su_phone',t:'20:00',e:'20:00',ic:'phoneoff',cat:'anchor',name:'Phone off',desc:'Down for the night by 8pm.',pts:5,pin:true},
- {id:'su_suppPM',t:'20:45',e:'21:00',ic:'pill',cat:'fuel',name:'Magnesium and lights low',desc:'Magnesium glycinate. Lights low.',pts:3,expand:'suppsPM'},
- {id:'su_sleep',t:'21:00',e:'21:00',ic:'moon',cat:'anchor',name:'Sleep',desc:'Asleep by 9pm.',pts:8,pin:true}
+ {id:'su_wake',t:'05:30',e:'05:45',ic:'wake',cat:'anchor',name:'Wake and hydrate',desc:'500ml water. No phone. Curtains open.',pts:8},
+ {id:'su_walk',t:'05:45',e:'06:00',ic:'walk',cat:'move',name:'Walk and sunlight',desc:'Short walk, daylight in the eyes.',pts:5},
+ {id:'su_reflect',t:'06:00',e:'07:30',ic:'book',cat:'deep',name:'Reflect and read',desc:'Slower start. Journal and read, no screens.',pts:9},
+ {id:'su_bkfst',t:'07:30',e:'08:15',ic:'food',cat:'brk',name:'Breakfast and shower',desc:'',pts:0,routine:true},
+ {id:'su_suppAM',t:'08:15',e:'08:30',ic:'pill',cat:'fuel',name:'Supplements (AM)',desc:'Vitamin D, vitamin C, creatine.',pts:3,expand:'supps'},
+ {id:'su_mealprep',t:'08:30',e:'11:00',ic:'food',cat:'fuel',name:'Meal prep for the week',desc:'Cook and portion the week of meals.',pts:12,expand:'mealprep'},
+ {id:'su_portion',t:'11:00',e:'11:30',ic:'pill',cat:'fuel',name:'Portion supplements and meat check',desc:'Bag the week of stacks. Confirm the meat delivery.',pts:5,expand:'portion'},
+ {id:'su_caff',t:'11:30',e:'11:30',ic:'coffeeoff',cat:'fuel',name:'No caffeine after 11:30',desc:'Last coffee is behind you.',pts:4,pin:true},
+ {id:'su_move',t:'11:30',e:'12:30',ic:'walk',cat:'move',name:'Long walk or mobility',desc:'Easy movement only. No hard session on rest day.',pts:7},
+ {id:'su_lunch',t:'12:30',e:'13:15',ic:'food',cat:'brk',name:'Lunch',desc:'',pts:0,routine:true},
+ {id:'su_rest',t:'13:15',e:'14:00',ic:'pause',cat:'brk',name:'Rest',desc:'Off your feet. A nap or quiet time.',pts:3},
+ {id:'su_plan',t:'14:00',e:'16:00',ic:'pen',cat:'deep',name:'Week review and plan',desc:'Review last week. Plan next week and set your focus.',pts:10,expand:'planning'},
+ {id:'su_family',t:'16:00',e:'17:30',ic:'moon',cat:'brk',name:'Family and rest',desc:'',pts:0,routine:true},
+ {id:'su_read',t:'17:30',e:'18:00',ic:'book',cat:'brk',name:'Reading and journal',desc:'Slow wind toward the evening.',pts:3},
+ {id:'su_dinner',t:'18:00',e:'18:45',ic:'food',cat:'fuel',name:'Dinner and diet check',desc:'Carnivore adaptation. Confirm you stayed on plan.',pts:8,expand:'diet'},
+ {id:'su_wind',t:'18:45',e:'20:30',ic:'moon',cat:'brk',name:'Wind down and rest',desc:'',pts:0,routine:true},
+ {id:'su_phone',t:'20:30',e:'20:30',ic:'phoneoff',cat:'anchor',name:'Phone off',desc:'Down for the night by 8:30pm.',pts:5,pin:true},
+ {id:'su_suppPM',t:'21:15',e:'21:30',ic:'pill',cat:'fuel',name:'Magnesium and lights low',desc:'Magnesium glycinate. Lights low.',pts:3,expand:'suppsPM'},
+ {id:'su_sleep',t:'21:30',e:'21:30',ic:'moon',cat:'anchor',name:'Sleep',desc:'Asleep by 9:30pm.',pts:8,pin:true}
 ];
 
 export const CHECKLISTS = {
@@ -78,15 +78,48 @@ export const CHECKLISTS = {
 export const EXTRA = {photo:4,reflect:3};
 export const SUPPS_AM = [{n:'Vitamin D3',tag:'with fat'},{n:'Vitamin C',tag:''},{n:'Creatine 5g',tag:'daily'}];
 export const SUPPS_PM = [{n:'Magnesium glycinate',tag:'evening'}];
-export const GYM = [{n:'Barbell bench press',s:'4 x 6'},{n:'Standing overhead press',s:'3 x 8'},{n:'Incline dumbbell press',s:'3 x 10'},{n:'Lateral raise',s:'3 x 15'},{n:'Triceps rope pushdown',s:'3 x 12'},{n:'Overhead triceps extension',s:'3 x 12'}];
+export const GYM_CODE = '08086484'; // gym entry code
+
+/* ---------- training: 3 lifting days, 3 cardio days, legs on Saturday ---------- */
+export const LIFTS = {
+  push: [
+    {n:'Barbell bench press',s:'4 x 6'},{n:'Standing overhead press',s:'3 x 8'},
+    {n:'Incline dumbbell press',s:'3 x 10'},{n:'Lateral raise',s:'3 x 15'},
+    {n:'Triceps rope pushdown',s:'3 x 12'},{n:'Overhead triceps extension',s:'3 x 12'}
+  ],
+  pull: [
+    {n:'Deadlift',s:'4 x 5'},{n:'Pull-up',s:'4 x 8'},
+    {n:'Barbell row',s:'3 x 8'},{n:'Seated cable row',s:'3 x 10'},
+    {n:'Face pull',s:'3 x 15'},{n:'Barbell curl',s:'3 x 12'}
+  ],
+  legs: [
+    {n:'Back squat',s:'4 x 6'},{n:'Romanian deadlift',s:'3 x 8'},
+    {n:'Leg press',s:'3 x 10'},{n:'Bulgarian split squat',s:'3 x 10'},
+    {n:'Leg curl',s:'3 x 12'},{n:'Standing calf raise',s:'4 x 15'},
+    {n:'Hanging leg raise',s:'3 x 15'}
+  ]
+};
+export const CARDIO_TYPES = ['Running','Cycling','Other'];
+export const CARDIO_MINS = 60;
+
+// Keyed by day of week: 1 = Monday ... 6 = Saturday. Sunday rests.
+export const TRAINING = {
+  1:{kind:'gym',key:'push',label:'Gym: Push',desc:'Chest, shoulders and triceps. Tap to open your lifts.'},
+  2:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
+  3:{kind:'gym',key:'pull',label:'Gym: Pull',desc:'Back and biceps. Tap to open your lifts.'},
+  4:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
+  5:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
+  6:{kind:'gym',key:'legs',label:'Gym: Legs',desc:'The big one. Warm up properly, you have the time.'}
+};
+export function trainingFor(dt){ return TRAINING[dt.getDay()] || null; }
 export const DIET_YES = ['Meat, all cuts','Fish and eggs','Hard cheese','Full-fat yoghurt','Fruit','Black coffee','Water and salt'];
 export const DIET_NO = ['Sugar','Bread, grains, pasta','Seed oils','Processed food','Alcohol','Soft drinks'];
 export const MOODS = [{k:1,l:'Rough',c:'var(--coral)',m:'sad'},{k:2,l:'Low',c:'#E7A24B',m:'meh'},{k:3,l:'Okay',c:'#E6D9A0',m:'flat'},{k:4,l:'Good',c:'var(--mint)',m:'ok'},{k:5,l:'Sharp',c:'var(--lime)',m:'grin'}];
 export const MEET_AM = [{n:'Team standup',t:'09:00'},{n:'Site call: Pembridge',t:'10:30'}];
 export const MEET_PM = [{n:'Showroom: Weatherston',t:'14:00'}];
 export const WORK_TASKS = ['Quote the Bolsover package','Chase two open quotes','Return calls'];
-export const NN_WEEKDAY = [['Wake 05:00','wake'],['Creative block 1','cre1'],['Sashed work','sashAM'],['Gym','gym'],['Creative block 2','cre2'],['Diet on plan','dinner'],['Sleep by 21:00','sleep']];
-export const NN_SUNDAY = [['Wake 05:00','su_wake'],['Reflect and read','su_reflect'],['Meal prep','su_mealprep'],['Week plan','su_plan'],['Diet on plan','su_dinner'],['Sleep by 21:00','su_sleep']];
+export const NN_WEEKDAY = [['Wake 05:30','wake'],['Creative block 1','cre1'],['Sashed work','sashAM'],['Training','gym'],['Creative block 2','cre2'],['Diet on plan','dinner'],['Sleep by 21:30','sleep']];
+export const NN_SUNDAY = [['Wake 05:30','su_wake'],['Reflect and read','su_reflect'],['Meal prep','su_mealprep'],['Week plan','su_plan'],['Diet on plan','su_dinner'],['Sleep by 21:30','su_sleep']];
 
 /* ---------- calendar ---------- */
 // Poopy Month runs Monday 20 July 2026 for 30 days (to Wednesday 19 August).
