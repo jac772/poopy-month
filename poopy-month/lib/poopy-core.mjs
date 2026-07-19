@@ -104,10 +104,10 @@ export const CARDIO_MINS = 60;
 
 // Keyed by day of week: 1 = Monday ... 6 = Saturday. Sunday rests.
 export const TRAINING = {
-  1:{kind:'gym',key:'push',label:'Gym: Push',desc:'Chest, shoulders and triceps. Tap to open your lifts.'},
-  2:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
-  3:{kind:'gym',key:'pull',label:'Gym: Pull',desc:'Back and biceps. Tap to open your lifts.'},
-  4:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
+  1:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
+  2:{kind:'gym',key:'push',label:'Gym: Push',desc:'Chest, shoulders and triceps. Tap to open your lifts.'},
+  3:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
+  4:{kind:'gym',key:'pull',label:'Gym: Pull',desc:'Back and biceps. Tap to open your lifts.'},
   5:{kind:'cardio',label:'Cardio: 60 mins',desc:'Run, cycle or your choice. Log the type and distance.'},
   6:{kind:'gym',key:'legs',label:'Gym: Legs',desc:'The big one. Warm up properly, you have the time.'}
 };
