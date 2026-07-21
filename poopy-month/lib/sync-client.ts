@@ -73,6 +73,7 @@ export function createSync(deps: SyncDeps): Sync {
   // Once the server has told us it has no store, stop asking. Otherwise every
   // tick fires a doomed request for the rest of the session.
   let disabled = false;
+  let photosDisabled = false;
 
   function applyRemote(data: any) {
     if (!data || data.available === false) {
@@ -124,10 +125,39 @@ export function createSync(deps: SyncDeps): Sync {
     }
   }
 
-  // One-time upload of days this device holds that the server has never seen,
-  // for history recorded before the sync existed. Strictly gap filling: a day
-  // the server already knows about is left alone, so this can never overwrite
-  // something another device put there.
+  const isInline = (v: unknown): v is string =>
+    typeof v === "string" && v.startsWith("data:");
+
+  // Push this device's inline photos for one day into storage and hand back
+  // the URLs. A photo that fails to upload is simply left out, so the rest of
+  // the record still travels.
+  async function liftPhotos(rec: DayRecord, key: string) {
+    const out: { photo?: string; meals: Record<string, string> } = { meals: {} };
+    if (isInline(rec.photo)) {
+      const url = await uploadPhoto(rec.photo, "photo", key);
+      if (url) out.photo = url;
+    }
+    const meals = rec.meals;
+    if (meals && typeof meals === "object") {
+      for (const [slot, val] of Object.entries(meals as Record<string, unknown>)) {
+        if (!isInline(val)) continue;
+        const url = await uploadPhoto(val, "meal-" + slot, key);
+        if (url) out.meals[slot] = url;
+      }
+    }
+    return out;
+  }
+
+  // Reconcile this device's history with the server, once per load.
+  //
+  // Two jobs. Days the server has never seen are uploaded whole. Days it
+  // already has are left as they are EXCEPT for photos it is missing that this
+  // device still holds inline: without that, a day that synced before its
+  // photo could be uploaded would be stuck without one forever, because it is
+  // no longer a gap.
+  //
+  // Both paths only ever add. A repair is built from the server's own record
+  // with photo URLs laid on top, so nothing another device wrote is disturbed.
   let backfilled = false;
   async function backfill(serverDays: Record<string, DayRecord>) {
     if (backfilled || disabled || !deps.localDays) return;
@@ -140,43 +170,47 @@ export function createSync(deps: SyncDeps): Sync {
       return;
     }
 
-    const gaps: Record<string, DayRecord> = {};
+    const payload: Record<string, DayRecord> = {};
+
     for (const [key, rec] of Object.entries(local)) {
       if (!rec || typeof rec !== "object") continue;
-      if (serverDays[key]) continue;
-      gaps[key] = rec;
-    }
-    const keys = Object.keys(gaps);
-    if (!keys.length) return;
+      const server = serverDays[key];
 
-    // Lift any inline photos into blob storage first, otherwise they would be
-    // stripped on the way out and the history would arrive without pictures.
-    // A failed upload just means that one photo stays on this device.
-    for (const key of keys) {
-      const rec = gaps[key];
-      if (typeof rec.photo === "string" && rec.photo.startsWith("data:")) {
-        const url = await uploadPhoto(rec.photo, "photo", key);
-        if (url) rec.photo = url;
+      if (!server) {
+        const lifted = await liftPhotos(rec, key);
+        const merged: DayRecord = { ...rec, meals: { ...(rec.meals as object), ...lifted.meals } };
+        if (lifted.photo) merged.photo = lifted.photo;
+        payload[key] = withoutInlineImages(merged);
+        continue;
       }
-      const meals = rec.meals as Record<string, unknown> | undefined;
-      if (meals && typeof meals === "object") {
-        for (const [slot, val] of Object.entries(meals)) {
-          if (typeof val === "string" && val.startsWith("data:")) {
-            const url = await uploadPhoto(val, "meal-" + slot, key);
-            if (url) meals[slot] = url;
-          }
-        }
-      }
+
+      const serverMeals = (server.meals || {}) as Record<string, unknown>;
+      const localMeals = (rec.meals || {}) as Record<string, unknown>;
+      const needsDaily = !server.photo && isInline(rec.photo);
+      const needsMeals = Object.keys(localMeals).filter(
+        (slot) => isInline(localMeals[slot]) && !serverMeals[slot]
+      );
+      if (!needsDaily && !needsMeals.length) continue;
+
+      const lifted = await liftPhotos(
+        { photo: needsDaily ? rec.photo : undefined, meals: Object.fromEntries(needsMeals.map((s) => [s, localMeals[s]])) },
+        key
+      );
+      if (!lifted.photo && !Object.keys(lifted.meals).length) continue;
+
+      // Built from the server's record, so this only ever adds the photos.
+      const repaired: DayRecord = { ...server, meals: { ...serverMeals, ...lifted.meals } };
+      if (lifted.photo) repaired.photo = lifted.photo;
+      payload[key] = withoutInlineImages(repaired);
     }
 
+    if (!Object.keys(payload).length) return;
     try {
-      const payload: Record<string, DayRecord> = {};
-      for (const key of keys) payload[key] = withoutInlineImages(gaps[key]);
       const data = await post(payload);
       if (data) applyRemote(data);
     } catch {
-      // Leave backfilled set: a half-finished upload should not retry in a
-      // loop. The next load will pick up whatever is still missing.
+      // Leave backfilled set so a half-finished upload does not retry in a
+      // loop. The next load picks up whatever is still missing.
     }
   }
 
@@ -210,6 +244,9 @@ export function createSync(deps: SyncDeps): Sync {
     day?: string
   ): Promise<string | null> {
     if (!dataUrl.startsWith("data:")) return dataUrl;
+    // Once storage has said it is not configured, stop asking. A day of
+    // history would otherwise fire one doomed upload per photo.
+    if (photosDisabled) return null;
     const blob = dataUrlToBlob(dataUrl);
     if (!blob) return null;
     const form = new FormData();
@@ -218,7 +255,11 @@ export function createSync(deps: SyncDeps): Sync {
     form.append("day", day || deps.dayKey());
     try {
       const res = await fetch("/api/photo", { method: "POST", body: form });
-      if (!res.ok) return null;
+      if (res.status === 501) photosDisabled = true;
+      if (!res.ok) {
+        console.warn("poopy: photo upload failed", res.status);
+        return null;
+      }
       const data = await res.json();
       return typeof data?.url === "string" ? data.url : null;
     } catch {

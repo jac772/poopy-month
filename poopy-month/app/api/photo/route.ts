@@ -53,18 +53,37 @@ export async function POST(request: Request) {
 
   // addRandomSuffix keeps a re-shot photo from being served stale out of the
   // blob CDN cache under the same URL.
-  const blob = await put(name, file, {
-    access: "public",
-    contentType: file.type || "image/jpeg",
-    addRandomSuffix: true,
-  });
-  return Response.json({ available: true, url: blob.url });
+  try {
+    const blob = await put(name, file, {
+      access: "public",
+      contentType: file.type || "image/jpeg",
+      addRandomSuffix: true,
+    });
+    return Response.json({ available: true, url: blob.url });
+  } catch (err) {
+    // Surface the reason rather than a bare 500. A silently failed upload
+    // means the record syncs without its photo and looks like data loss.
+    console.error("blob upload failed", err);
+    return Response.json(
+      { available: false, error: String((err as Error)?.message || err) },
+      { status: 502 }
+    );
+  }
 }
 
-// Serves the dev stand-in photos only. In production the URLs point straight
-// at blob storage and never reach this handler.
+// With no id, reports whether photo storage is wired up, so the setup can be
+// checked from the browser the same way /api/sync can. With an id, serves the
+// dev stand-in photos; in production the URLs point straight at blob storage
+// and never reach this handler.
 export async function GET(request: Request) {
   const id = new URL(request.url).searchParams.get("id") || "";
+  if (!id) {
+    return Response.json({
+      available: configured() || devAllowed,
+      store: configured() ? "blob" : devAllowed ? "dev-memory" : "none",
+      blobTokenPresent: configured(),
+    });
+  }
   const hit = devPhotos.get(id);
   if (!hit) return new Response("not found", { status: 404 });
   return new Response(new Uint8Array(hit.body), {
