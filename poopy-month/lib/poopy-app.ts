@@ -538,17 +538,25 @@ export function mountPoopy(root){
       // Taking the remote copy only when this device has nothing is not
       // enough: a device that pulled a day down BEFORE its photo was repaired
       // would keep the photoless version for good. So also take it when it is
-      // newer, or when it carries pictures this device is missing. Comparing
-      // picture counts rather than blindly overwriting means a photo held here
-      // is never swapped for a record that has none.
+      // newer, or when it carries pictures this device is missing.
+      //
+      // The picture count is a HARD FLOOR, not a tie-breaker. This runs before
+      // the backfill, so without it a record that is merely newer could
+      // overwrite the only copy of a photo that had not been uploaded yet, and
+      // the backfill would then find nothing left to repair. A pre-sync record
+      // has no timestamp at all, so it loses every comparison: exactly the
+      // shape that holds the photos worth protecting. Never trade a picture
+      // away for a record that lacks one.
       Object.keys(days || {}).forEach(key => {
         if(key === TODAY_KEY) return;
         const remote = days[key];
         if(!remote || typeof remote !== 'object') return;
         const mine = readJSON('poopy:v1:' + key);
         if(!Object.keys(mine).length){ writeLocal('poopy:v1:' + key, remote); return; }
+        const theirs = pictureCount(remote), ours = pictureCount(mine);
+        if(theirs < ours) return;
         const newer = (Number(remote.updatedAt) || 0) > (Number(mine.updatedAt) || 0);
-        if(newer || pictureCount(remote) > pictureCount(mine)) writeLocal('poopy:v1:' + key, remote);
+        if(newer || theirs > ours) writeLocal('poopy:v1:' + key, remote);
       });
       scores = Object.assign({}, scores, remoteScores);
       svScores();
