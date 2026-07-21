@@ -163,6 +163,15 @@ export function mountPoopy(root){
 
   const DAY_KEY_RE = /^poopy:v1:(\d{4}-\d{2}-\d{2})$/;
 
+  // How many pictures a record carries, used to decide which copy of a past
+  // day is the richer one. Never used to drop pictures, only to gain them.
+  function pictureCount(rec){
+    let n = rec && rec.photo ? 1 : 0;
+    const m = rec && rec.meals;
+    if(m && typeof m === 'object') n += Object.keys(m).filter(k => m[k]).length;
+    return n;
+  }
+
   // Every day this device has stored, for the one-time upload of history that
   // predates the sync. Those old records carry no score, so work it out here.
   //
@@ -524,12 +533,22 @@ export function mountPoopy(root){
     onRemoteDays: (days, remoteScores) => {
       // Past days are read straight out of localStorage by the month view, so
       // a record only exists on the device that made it until it is written
-      // here. Gap filling only: today is handled above, and a day this device
-      // already has is left as it is.
+      // here. Today is handled above by onRemoteDay.
+      //
+      // Taking the remote copy only when this device has nothing is not
+      // enough: a device that pulled a day down BEFORE its photo was repaired
+      // would keep the photoless version for good. So also take it when it is
+      // newer, or when it carries pictures this device is missing. Comparing
+      // picture counts rather than blindly overwriting means a photo held here
+      // is never swapped for a record that has none.
       Object.keys(days || {}).forEach(key => {
         if(key === TODAY_KEY) return;
-        if(localStorage.getItem('poopy:v1:' + key)) return;
-        writeLocal('poopy:v1:' + key, days[key]);
+        const remote = days[key];
+        if(!remote || typeof remote !== 'object') return;
+        const mine = readJSON('poopy:v1:' + key);
+        if(!Object.keys(mine).length){ writeLocal('poopy:v1:' + key, remote); return; }
+        const newer = (Number(remote.updatedAt) || 0) > (Number(mine.updatedAt) || 0);
+        if(newer || pictureCount(remote) > pictureCount(mine)) writeLocal('poopy:v1:' + key, remote);
       });
       scores = Object.assign({}, scores, remoteScores);
       svScores();
