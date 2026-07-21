@@ -29,7 +29,7 @@ delete noDiet.done.dinner;
 ok(C.scoreFor(noDiet, C.PLAN_WEEKDAY) === 92, "no diet = 92");
 
 // --- doneCount ---
-ok(C.doneCountFor({ done: {} }, C.PLAN_WEEKDAY).endsWith("/15"), "weekday has 15 scored tasks");
+ok(C.doneCountFor({ done: {} }, C.PLAN_WEEKDAY).endsWith("/14"), "weekday has 14 scored tasks");
 
 // --- month cell values ---
 const scores = {};

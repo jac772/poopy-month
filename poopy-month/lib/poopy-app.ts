@@ -6,7 +6,7 @@ import * as C from './poopy-core.mjs';
 const {
   I, TILE, PLAN_WEEKDAY, PLAN_SUNDAY, CHECKLISTS, EXTRA, SUPPS_AM, SUPPS_PM, GYM_CODE,
   LIFTS, CARDIO_TYPES, CARDIO_MINS, trainingFor,
-  DIET_YES, DIET_NO, MOODS, MEET_AM, MEET_PM, WORK_TASKS, NN_WEEKDAY, NN_SUNDAY, DAYS,
+  DIET_YES, DIET_NO, MOODS, NN_WEEKDAY, NN_SUNDAY, DAYS,
   ymd, idxFromStart, dateAtIndex, keyAtIndex, dateLabelIndex, planForIndex, nnForPlan,
   scoreFor, doneCountFor, missedNames, colFor, monthVal, streakFrom
 } = C;
@@ -42,7 +42,7 @@ const TEMPLATE = `
       </div>
       <div class="seclbl">Today's plan <span class="cnt" id="doneCount">0/17</span></div>
       <div class="timeline" id="timeline"></div>
-      <div class="tip"><b>Every block is 15 minutes.</b> Tap a block to open it, tap the square to complete it. Your Sash meetings drop into the work blocks once your Google calendars are connected.</div>
+      <div class="tip"><b>Every block is 15 minutes.</b> Tap a block to open it, tap the square to complete it. Meals, training and your evening stack all open for logging.</div>
     </section>
 
     <section class="view" id="view-month">
@@ -94,6 +94,27 @@ const TEMPLATE = `
   <div class="modal" id="dayModal"><div class="scrim" id="scrim"></div><div class="sheet" id="sheet"></div></div>
 </div>`;
 
+function compressImage(file, cb, max, quality){
+  max = max || 1200; quality = quality || 0.7;
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      const scale = Math.min(1, max / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      try {
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', quality));
+      } catch (e) { cb(r.result); }
+    };
+    img.onerror = () => cb(r.result);
+    img.src = r.result;
+  };
+  r.readAsDataURL(file);
+}
+
 export function mountPoopy(root){
   root.innerHTML = TEMPLATE;
   const $ = (id) => root.querySelector('#' + id);
@@ -110,7 +131,7 @@ export function mountPoopy(root){
   const KEY = 'poopy:v1:' + TODAY_KEY;
   const SCORES_KEY = 'poopy:v1:scores';
   function readJSON(k){ try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } }
-  function normalize(s){ s.done=s.done||{}; s.supp=s.supp||{}; s.gymSets=s.gymSets||{}; s.gymWt=s.gymWt||{}; s.diet=s.diet||false; s.gymDone=s.gymDone||false; s.mood=s.mood||0; s.notes=s.notes||{}; s.photo=s.photo||null; return s; }
+  function normalize(s){ s.done=s.done||{}; s.supp=s.supp||{}; s.gymSets=s.gymSets||{}; s.gymWt=s.gymWt||{}; s.diet=s.diet||false; s.gymDone=s.gymDone||false; s.mood=s.mood||0; s.notes=s.notes||{}; s.photo=s.photo||null; s.meals=s.meals||{}; return s; }
   let S = normalize(readJSON(KEY));
   let scores = readJSON(SCORES_KEY);
   function sv(){ localStorage.setItem(KEY, JSON.stringify(S)); }
@@ -263,15 +284,18 @@ export function mountPoopy(root){
       }
       el.querySelector('#gymCta').addEventListener('click',()=>{ S.gymDone=!S.gymDone; S.done.gym=S.gymDone; sv(); renderTimeline(); refresh(); });
     }
-    if(p.expand==='diet'){
-      el.innerHTML='<div class="diet-grid"><div class="dc yes"><b>On the plan</b><ul>'+DIET_YES.map(x=>'<li>'+x+'</li>').join('')+'</ul></div><div class="dc no"><b>Off the plan</b><ul>'+DIET_NO.map(x=>'<li>'+x+'</li>').join('')+'</ul></div></div><div class="toggle-row"><span>Stayed on plan today</span><div class="sw'+(S.done[p.id]?' on':'')+'" id="dsw"></div></div>';
-      el.querySelector('#dsw').addEventListener('click',()=>{ S.done[p.id]=!S.done[p.id]; S.diet=S.done[p.id]; el.querySelector('#dsw').classList.toggle('on',S.done[p.id]); renderTimeline(); refresh(); sv(); });
-    }
-    if(p.expand==='work'){
-      const meet=(p.id==='sashAM')?MEET_AM:MEET_PM;
-      el.innerHTML='<h4>From your Sash calendar</h4>'+meet.map(m=>'<div class="mini"><div class="mc" style="background:var(--sky);color:var(--ink)">'+svg('cal','width="12" height="12"')+'</div><div class="mt">'+m.n+'</div><span class="tag">'+m.t+'</span></div>').join('')+
-        '<h4 style="margin-top:13px">Fill the gaps</h4>'+WORK_TASKS.map((t,i)=>{ const k=p.id+'-w'+i,on=S.supp[k]; return '<div class="mini'+(on?' on':'')+'" data-k="'+k+'"><div class="mc">'+svg('check','width="13" height="13"')+'</div><div class="mt">'+t+'</div></div>'; }).join('');
-      el.querySelectorAll('.mini[data-k]').forEach(m=>m.addEventListener('click',()=>{ const k=m.dataset.k; S.supp[k]=!S.supp[k]; m.classList.toggle('on',S.supp[k]); sv(); }));
+    if(p.expand==='meal'){
+      const cur=(S.meals&&S.meals[p.id])||null;
+      const prev=cur?'<img src="'+cur+'" alt="">':'<span class="ms-ic">'+svg('camera','width="30" height="30"')+'</span><span class="ms-t">Tap to photograph your meal</span>';
+      el.innerHTML='<h4>'+p.name+' &middot; what you ate</h4>'+
+        '<label class="mealshot"><input type="file" accept="image/*" capture="environment" hidden data-mealin><span class="ms-body" data-mealprev>'+prev+'</span></label>';
+      el.querySelector('[data-mealin]').addEventListener('change',ev=>{
+        const f=ev.target.files[0]; if(!f) return;
+        compressImage(f,(url)=>{
+          S.meals=S.meals||{}; S.meals[p.id]=url; sv();
+          el.querySelector('[data-mealprev]').innerHTML='<img src="'+url+'" alt="">';
+        });
+      });
     }
     el.dataset.f='1';
   }
@@ -341,7 +365,7 @@ export function mountPoopy(root){
     $('camIcon').innerHTML=svg('camera','width="36" height="36" style="opacity:.5"');
     const input=$('photoInput');
     if(S.photo) showPhoto(S.photo);
-    input.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ S.photo=r.result; sv(); showPhoto(r.result); refresh(); }; r.readAsDataURL(f); });
+    input.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; compressImage(f,(url)=>{ S.photo=url; sv(); showPhoto(url); refresh(); }); });
     ['done','felt','change'].forEach(k=>{ const t=$('n-'+k); t.value=(S.notes&&S.notes[k])||''; t.addEventListener('input',()=>{ S.notes[k]=t.value; sv(); }); });
     $('saveBtn').addEventListener('click',()=>{ sv(); refresh(); const n=$('savedNote'); n.textContent='Saved'+(started?', Day '+(TODAY_IDX+1)+' locked in.':'.'); setTimeout(()=>n.textContent='',2200); });
     initMood();
