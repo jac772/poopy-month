@@ -18,6 +18,10 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     fetch(req)
       .then((res) => {
+        // Never cache a failure or a redirect: while the password gate is on,
+        // every locked request lands on /unlock and would otherwise be stored
+        // as the offline copy of the page it was meant to be.
+        if (!res.ok || res.redirected) return res;
         const copy = res.clone();
         caches.open(CACHE).then((c) => {
           try { c.put(req, copy); } catch (_) {}
