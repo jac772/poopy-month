@@ -2,6 +2,7 @@
 // Poopy Month - DOM app. Mounts the whole UI into a container and wires all behaviour.
 // Pure data and logic live in ./poopy-core.mjs so they can be unit tested.
 import * as C from './poopy-core.mjs';
+import { createSync } from './sync-client';
 
 const {
   I, TILE, PLAN_WEEKDAY, PLAN_SUNDAY, CHECKLISTS, EXTRA, SUPPS_AM, SUPPS_PM, GYM_CODE,
@@ -134,8 +135,31 @@ export function mountPoopy(root){
   function normalize(s){ s.done=s.done||{}; s.supp=s.supp||{}; s.gymSets=s.gymSets||{}; s.gymWt=s.gymWt||{}; s.diet=s.diet||false; s.gymDone=s.gymDone||false; s.mood=s.mood||0; s.notes=s.notes||{}; s.photo=s.photo||null; s.meals=s.meals||{}; return s; }
   let S = normalize(readJSON(KEY));
   let scores = readJSON(SCORES_KEY);
-  function sv(){ localStorage.setItem(KEY, JSON.stringify(S)); }
-  function svScores(){ localStorage.setItem(SCORES_KEY, JSON.stringify(scores)); }
+
+  // localStorage throws once the origin's quota is full. Swallow it: a failed
+  // save must not break the tap that caused it, and the server copy is now the
+  // thing that actually persists.
+  function writeLocal(k, v){
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch (e) { console.warn('poopy: local save failed', e); return false; }
+  }
+
+  let sync = null;
+  // sv() is called by things that are not user edits: the first render at boot,
+  // and writing the server's version in. Those must not stamp a fresh
+  // updatedAt. Getting this wrong is subtle and costly: an untouched day that
+  // looked "just edited" would out-rank the real record on the server, so
+  // opening the app on a second device would show an empty day and then
+  // overwrite the good one.
+  let silent = true;
+
+  function sv(){
+    if(!silent) S.updatedAt = Date.now();
+    S.score = scoreToday();
+    writeLocal(KEY, S);
+    if(!silent && sync) sync.push();
+  }
+  function svScores(){ writeLocal(SCORES_KEY, scores); }
 
   /* ---------- time ---------- */
   function toMin(t){ const [a,b]=t.split(':').map(Number); return a*60+b; }
@@ -294,6 +318,10 @@ export function mountPoopy(root){
         compressImage(f,(url)=>{
           S.meals=S.meals||{}; S.meals[p.id]=url; sv();
           el.querySelector('[data-mealprev]').innerHTML='<img src="'+url+'" alt="">';
+          if(!sync) return;
+          sync.uploadPhoto(url,'meal-'+p.id).then(remote=>{
+            if(remote && S.meals[p.id]===url){ S.meals[p.id]=remote; sv(); }
+          });
         });
       });
     }
@@ -365,10 +393,36 @@ export function mountPoopy(root){
     $('camIcon').innerHTML=svg('camera','width="36" height="36" style="opacity:.5"');
     const input=$('photoInput');
     if(S.photo) showPhoto(S.photo);
-    input.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; compressImage(f,(url)=>{ S.photo=url; sv(); showPhoto(url); refresh(); }); });
+    // Show the local copy at once, then swap in the uploaded URL so the record
+    // travels as a link rather than a few hundred KB of base64.
+    input.addEventListener('change',e=>{
+      const f=e.target.files[0]; if(!f) return;
+      compressImage(f,(url)=>{
+        S.photo=url; sv(); showPhoto(url); refresh();
+        if(!sync) return;
+        sync.uploadPhoto(url,'photo').then(remote=>{
+          if(remote && S.photo===url){ S.photo=remote; sv(); showPhoto(remote); }
+        });
+      });
+    });
     ['done','felt','change'].forEach(k=>{ const t=$('n-'+k); t.value=(S.notes&&S.notes[k])||''; t.addEventListener('input',()=>{ S.notes[k]=t.value; sv(); }); });
     $('saveBtn').addEventListener('click',()=>{ sv(); refresh(); const n=$('savedNote'); n.textContent='Saved'+(started?', Day '+(TODAY_IDX+1)+' locked in.':'.'); setTimeout(()=>n.textContent='',2200); });
     initMood();
+  }
+
+  // Push the current record back into the Record tab's fields without
+  // rebinding any listeners, for when a newer version arrives from the server.
+  // A textarea being typed into is left alone so a sync cannot eat a sentence
+  // mid-word.
+  function syncRecordFields(){
+    if(S.photo) showPhoto(S.photo);
+    ['done','felt','change'].forEach(k=>{
+      const t=$('n-'+k);
+      if(t && document.activeElement!==t) t.value=(S.notes&&S.notes[k])||'';
+    });
+    const rowEl=$('mood');
+    if(rowEl) rowEl.querySelectorAll('.mood-btn').forEach(b=>b.classList.toggle('sel', S.mood===+b.dataset.m));
+    updateBell();
   }
 
   /* ---------- swirl backdrop ---------- */
@@ -422,6 +476,32 @@ export function mountPoopy(root){
   $('recDay').textContent = 'Daily record' + (started ? ' · Day ' + (TODAY_IDX+1) : '');
   $('calTitle').textContent = '20 Jul to 18 Aug';
   refresh();
+
+  /* ---------- cloud sync ---------- */
+  // Boot renders are done, so from here a save means the user did something.
+  silent = false;
+  sync = createSync({
+    dayKey: () => TODAY_KEY,
+    record: () => S,
+    onRemoteDay: (remote) => {
+      silent = true;
+      try {
+        S = normalize(remote);
+        writeLocal(KEY, S);
+        renderTimeline();
+        syncRecordFields();
+        refresh();
+      } finally { silent = false; }
+    },
+    onRemoteScores: (remote) => {
+      scores = Object.assign({}, scores, remote);
+      svScores();
+      renderMonth();
+      $('streakN').textContent = streakCount();
+    },
+  });
+  sync.pull();
+
   setTimeout(()=>setGauge(scoreToday()),120);
   setTimeout(scrollToNow,420);
   const tlEl=$('timeline');

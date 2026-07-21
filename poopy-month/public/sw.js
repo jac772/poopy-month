@@ -15,6 +15,9 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // The sync API must always go to the network. A cached copy served after a
+  // blip would quietly show yesterday's state as if it were current.
+  if (url.pathname.startsWith("/api/")) return;
   e.respondWith(
     fetch(req)
       .then((res) => {

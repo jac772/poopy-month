@@ -30,6 +30,12 @@ export async function proxy(request: NextRequest) {
   const cookie = request.cookies.get(COOKIE)?.value;
   if (cookie && safeEqual(cookie, expected)) return NextResponse.next();
 
+  // Answer locked API calls with a 401 rather than redirecting them to the
+  // unlock page's HTML. A background sync following that redirect would get a
+  // 200 full of markup and treat the write as having succeeded.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "locked" }, { status: 401 });
+  }
   return NextResponse.redirect(new URL("/unlock", request.url));
 }
 
