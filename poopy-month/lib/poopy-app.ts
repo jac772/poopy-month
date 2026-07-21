@@ -161,6 +161,33 @@ export function mountPoopy(root){
   }
   function svScores(){ writeLocal(SCORES_KEY, scores); }
 
+  const DAY_KEY_RE = /^poopy:v1:(\d{4}-\d{2}-\d{2})$/;
+
+  // Every day this device has stored, for the one-time upload of history that
+  // predates the sync. Those old records carry no score, so work it out here.
+  //
+  // Recompute from the record rather than trusting the saved scores map. The
+  // record is the source of truth and the map is only a cache of it, and the
+  // day-detail sheet recomputes too: taking the cached number would let the
+  // month heatmap and the day you tap show two different scores. Sundays score
+  // against their own plan, hence planForIndex rather than today's.
+  function allLocalDays(){
+    const out = {};
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      const m = k && k.match(DAY_KEY_RE);
+      if(!m) continue;
+      const rec = readJSON(k);
+      if(!rec || typeof rec !== 'object') continue;
+      const dayKey = m[1];
+      const idx = idxFromStart(new Date(dayKey + 'T12:00:00'));
+      if(idx >= 0 && idx < DAYS) rec.score = scoreFor(normalize(rec), planForIndex(idx));
+      else if(typeof rec.score !== 'number' && typeof scores[dayKey] === 'number') rec.score = scores[dayKey];
+      out[dayKey] = rec;
+    }
+    return out;
+  }
+
   /* ---------- time ---------- */
   function toMin(t){ const [a,b]=t.split(':').map(Number); return a*60+b; }
   function nowMin(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); }
@@ -493,8 +520,18 @@ export function mountPoopy(root){
         refresh();
       } finally { silent = false; }
     },
-    onRemoteScores: (remote) => {
-      scores = Object.assign({}, scores, remote);
+    localDays: allLocalDays,
+    onRemoteDays: (days, remoteScores) => {
+      // Past days are read straight out of localStorage by the month view, so
+      // a record only exists on the device that made it until it is written
+      // here. Gap filling only: today is handled above, and a day this device
+      // already has is left as it is.
+      Object.keys(days || {}).forEach(key => {
+        if(key === TODAY_KEY) return;
+        if(localStorage.getItem('poopy:v1:' + key)) return;
+        writeLocal('poopy:v1:' + key, days[key]);
+      });
+      scores = Object.assign({}, scores, remoteScores);
       svScores();
       renderMonth();
       $('streakN').textContent = streakCount();

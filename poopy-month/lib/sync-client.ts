@@ -20,15 +20,20 @@ export type SyncDeps = {
   dayKey: () => string;
   record: () => DayRecord;
   // Called with the server's copy of the current day when it is newer than
-  // ours, plus the full score map for the month view.
+  // ours.
   onRemoteDay: (record: DayRecord) => void;
-  onRemoteScores: (scores: Record<string, number>) => void;
+  // Called with every day the server holds, so past days can be filled in
+  // locally. The month view reads those straight out of localStorage.
+  onRemoteDays: (days: Record<string, DayRecord>, scores: Record<string, number>) => void;
+  // Every day record held locally. Used once per load to upload history that
+  // was recorded before this sync existed.
+  localDays?: () => Record<string, DayRecord>;
 };
 
 export type Sync = {
   push: () => void;
   pull: () => void;
-  uploadPhoto: (dataUrl: string, slot: string) => Promise<string | null>;
+  uploadPhoto: (dataUrl: string, slot: string, day?: string) => Promise<string | null>;
 };
 
 // A photo that has not been uploaded yet is still a base64 data URL sitting in
@@ -75,10 +80,24 @@ export function createSync(deps: SyncDeps): Sync {
       return;
     }
     const key = deps.dayKey();
-    const remote = data.days?.[key];
+    const days = data.days || {};
+    const remote = days[key];
     const mine = Number(deps.record()?.updatedAt) || 0;
     if (remote && (Number(remote.updatedAt) || 0) > mine) deps.onRemoteDay(remote);
-    if (data.scores) deps.onRemoteScores(data.scores);
+    deps.onRemoteDays(days, data.scores || {});
+  }
+
+  async function post(days: Record<string, DayRecord>): Promise<any | null> {
+    const res = await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ days }),
+    });
+    if (res.status === 501) {
+      disabled = true;
+      return null;
+    }
+    return res.ok ? res.json() : null;
   }
 
   async function send() {
@@ -89,15 +108,10 @@ export function createSync(deps: SyncDeps): Sync {
     }
     inFlight = true;
     try {
-      const res = await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          days: { [deps.dayKey()]: withoutInlineImages(deps.record()) },
-        }),
+      const data = await post({
+        [deps.dayKey()]: withoutInlineImages(deps.record()),
       });
-      if (res.status === 501) disabled = true;
-      else if (res.ok) applyRemote(await res.json());
+      if (data) applyRemote(data);
     } catch {
       // Offline or the request failed. The local save already happened and the
       // next tick will push again, so there is nothing to recover here.
@@ -107,6 +121,62 @@ export function createSync(deps: SyncDeps): Sync {
         pending = false;
         send();
       }
+    }
+  }
+
+  // One-time upload of days this device holds that the server has never seen,
+  // for history recorded before the sync existed. Strictly gap filling: a day
+  // the server already knows about is left alone, so this can never overwrite
+  // something another device put there.
+  let backfilled = false;
+  async function backfill(serverDays: Record<string, DayRecord>) {
+    if (backfilled || disabled || !deps.localDays) return;
+    backfilled = true;
+
+    let local: Record<string, DayRecord> = {};
+    try {
+      local = deps.localDays() || {};
+    } catch {
+      return;
+    }
+
+    const gaps: Record<string, DayRecord> = {};
+    for (const [key, rec] of Object.entries(local)) {
+      if (!rec || typeof rec !== "object") continue;
+      if (serverDays[key]) continue;
+      gaps[key] = rec;
+    }
+    const keys = Object.keys(gaps);
+    if (!keys.length) return;
+
+    // Lift any inline photos into blob storage first, otherwise they would be
+    // stripped on the way out and the history would arrive without pictures.
+    // A failed upload just means that one photo stays on this device.
+    for (const key of keys) {
+      const rec = gaps[key];
+      if (typeof rec.photo === "string" && rec.photo.startsWith("data:")) {
+        const url = await uploadPhoto(rec.photo, "photo", key);
+        if (url) rec.photo = url;
+      }
+      const meals = rec.meals as Record<string, unknown> | undefined;
+      if (meals && typeof meals === "object") {
+        for (const [slot, val] of Object.entries(meals)) {
+          if (typeof val === "string" && val.startsWith("data:")) {
+            const url = await uploadPhoto(val, "meal-" + slot, key);
+            if (url) meals[slot] = url;
+          }
+        }
+      }
+    }
+
+    try {
+      const payload: Record<string, DayRecord> = {};
+      for (const key of keys) payload[key] = withoutInlineImages(gaps[key]);
+      const data = await post(payload);
+      if (data) applyRemote(data);
+    } catch {
+      // Leave backfilled set: a half-finished upload should not retry in a
+      // loop. The next load will pick up whatever is still missing.
     }
   }
 
@@ -124,20 +194,28 @@ export function createSync(deps: SyncDeps): Sync {
         disabled = true;
         return;
       }
-      if (res.ok) applyRemote(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        applyRemote(data);
+        if (data?.available !== false) await backfill(data.days || {});
+      }
     } catch {
       // Same as above: a failed pull just leaves the local copy showing.
     }
   }
 
-  async function uploadPhoto(dataUrl: string, slot: string): Promise<string | null> {
+  async function uploadPhoto(
+    dataUrl: string,
+    slot: string,
+    day?: string
+  ): Promise<string | null> {
     if (!dataUrl.startsWith("data:")) return dataUrl;
     const blob = dataUrlToBlob(dataUrl);
     if (!blob) return null;
     const form = new FormData();
     form.append("file", blob, `${slot}.jpg`);
     form.append("slot", slot);
-    form.append("day", deps.dayKey());
+    form.append("day", day || deps.dayKey());
     try {
       const res = await fetch("/api/photo", { method: "POST", body: form });
       if (!res.ok) return null;

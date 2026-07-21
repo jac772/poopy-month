@@ -10,8 +10,15 @@ import { put } from "@vercel/blob";
 export const dynamic = "force-dynamic";
 
 const MAX_BYTES = 8 * 1024 * 1024;
-const devPhotos = new Map<string, { body: Buffer; type: string }>();
 const devAllowed = process.env.NODE_ENV !== "production";
+
+// Hung off globalThis so it survives the dev server re-evaluating this module,
+// which otherwise empties the store between an upload and the request that
+// reads it back and makes local testing look broken when it is not.
+const globalDev = globalThis as unknown as {
+  __poopyDevPhotos?: Map<string, { body: Buffer; type: string }>;
+};
+const devPhotos = (globalDev.__poopyDevPhotos ??= new Map());
 
 function configured(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);

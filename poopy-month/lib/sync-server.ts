@@ -50,7 +50,13 @@ export function isConfigured(): boolean {
 // database. Deliberately NOT used in production: silently accepting writes
 // into a process that forgets them on every cold start would look like it is
 // working while quietly losing days.
-const devDays: Record<string, DayRecord> = {};
+// On globalThis for the same reason as the dev photo store: the dev server
+// re-evaluates modules, and a plain module-level object would silently empty
+// itself mid-test.
+const globalDev = globalThis as unknown as {
+  __poopyDevDays?: Record<string, DayRecord>;
+};
+const devDays = (globalDev.__poopyDevDays ??= {});
 const devAllowed = process.env.NODE_ENV !== "production";
 
 export function isAvailable(): boolean {
